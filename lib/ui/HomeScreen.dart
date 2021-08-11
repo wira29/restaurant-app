@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:restaurant_app/common/styles.dart';
-import 'package:restaurant_app/model/Restaurant.dart';
+import 'package:restaurant_app/data/model/Restaurant.dart';
+import 'package:restaurant_app/provider/RestaurantProvider.dart';
 import 'package:restaurant_app/ui/DetailScreen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,8 +15,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<RestaurantProvider>(context, listen: false);
     return Scaffold(
         resizeToAvoidBottomInset: false,
         body: Stack(
@@ -57,24 +67,133 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         SizedBox(
-                          height: 40,
+                          height: 24,
                         ),
                         Expanded(
-                          child: FutureBuilder<String>(
-                            future: DefaultAssetBundle.of(context)
-                                .loadString('assets/restaurant.json'),
-                            builder: (context, snapshot) {
-                              final List<Restaurant> restaurants =
-                                  parseRestaurant(snapshot.data);
-
-                              return GridView.count(
-                                crossAxisCount: 2,
-                                children: List.generate(restaurants.length,
-                                    (index) => itemGrid(restaurants[index])),
-                              );
-                            },
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      height: 40,
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: textSecondary,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: TextField(
+                                        controller: _searchController,
+                                        onSubmitted: (query) =>
+                                            provider.search(query),
+                                        decoration: InputDecoration(
+                                          border: InputBorder.none,
+                                          hintText: "Search...",
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 8,
+                                  ),
+                                  InkWell(
+                                    onTap: () {
+                                      provider.refresh();
+                                      setState(() {
+                                        _searchController.text = "";
+                                      });
+                                    },
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.refresh_outlined,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                height: 24,
+                              ),
+                              Expanded(
+                                child: Consumer<RestaurantProvider>(
+                                  builder: (context, state, _) {
+                                    if (state.state == ResultState.Loading) {
+                                      return Center(
+                                          child: CircularProgressIndicator());
+                                    } else if (state.state ==
+                                        ResultState.HasData) {
+                                      List<Restaurant> restaurants =
+                                          state.result.restaurants;
+                                      return GridView.count(
+                                        crossAxisCount: 2,
+                                        children: List.generate(
+                                            restaurants.length,
+                                            (index) =>
+                                                itemGrid(restaurants[index])),
+                                      );
+                                    } else if (state.state ==
+                                        ResultState.NoData) {
+                                      return Center(
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.data_saver_off,
+                                              color: Colors.grey,
+                                            ),
+                                            SizedBox(
+                                              width: 16,
+                                            ),
+                                            Text(
+                                              state.message,
+                                              style:
+                                                  TextStyle(color: Colors.grey),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    } else if (state.state ==
+                                        ResultState.Error) {
+                                      return Center(
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.error_outline,
+                                              color: Colors.grey,
+                                            ),
+                                            SizedBox(
+                                              width: 16,
+                                            ),
+                                            Text(
+                                              state.runtime == 'SocketException'
+                                                  ? 'an error occurred with the network'
+                                                  : state.message,
+                                              style:
+                                                  TextStyle(color: Colors.grey),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    } else {
+                                      return Center(child: Text(''));
+                                    }
+                                  },
+                                ),
+                              )
+                            ],
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -87,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return InkWell(
       onTap: () {
         Navigator.pushNamed(context, DetailScreen.routeName,
-            arguments: restaurant);
+            arguments: restaurant.id);
       },
       child: Hero(
         tag: restaurant.id,
@@ -96,7 +215,8 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             image: DecorationImage(
-                image: NetworkImage(restaurant.pictureId),
+                image: NetworkImage(
+                    "https://restaurant-api.dicoding.dev/images/medium/${restaurant.pictureId}"),
                 fit: BoxFit.cover,
                 colorFilter:
                     ColorFilter.mode(Colors.black45, BlendMode.darken)),

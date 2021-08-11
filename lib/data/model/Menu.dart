@@ -7,7 +7,3 @@ class Menu {
     name = data["name"];
   }
 }
-
-List<Menu> parseMenu(List menu) {
-  return menu.map((data) => Menu.fromJson(data)).toList();
-}
