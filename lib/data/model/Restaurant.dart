@@ -1,9 +1,8 @@
 import 'dart:convert';
 
-import 'package:restaurant_app/data/model/Category.dart';
-import 'package:restaurant_app/data/model/CustomerReview.dart';
-
-import 'Menu.dart';
+import 'package:restaurant_app/data/model/category.dart';
+import 'package:restaurant_app/data/model/customer_review.dart';
+import 'menu.dart';
 
 class Restaurant {
   late String id;
@@ -12,6 +11,7 @@ class Restaurant {
   late String pictureId;
   late String city;
   late num rating;
+  late bool isFavorite;
   late List<Menu> foods;
   late List<Menu> drinks;
   late List<Category> categories;
@@ -54,6 +54,15 @@ class Restaurant {
             .map((x) => CustomerReview.fromJson(x)))
         : [];
   }
+
+  Map<String, dynamic> toJson() => {
+        "id": id,
+        "name": name,
+        "description": description,
+        "pictureId": pictureId,
+        "city": city,
+        "rating": rating,
+      };
 }
 
 List<Restaurant> parseRestaurant(String? json) {
